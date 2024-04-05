@@ -10,7 +10,7 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CategoryService } from '../category.service';
 import { FilterCategoryDto } from '../dtos/filter-category.dto';
 import { CreateCategoryDto } from '../dtos/create-category.dto';
@@ -19,6 +19,7 @@ import { ValidateMongoId } from 'src/common/utils/validate.util';
 
 @Controller('categories')
 @ApiTags('Categories')
+@ApiBearerAuth('accessToken')
 export class CategoryAdminController {
   constructor(private readonly service: CategoryService) {}
 

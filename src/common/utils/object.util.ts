@@ -1,3 +1,4 @@
+import { SchemaOptions } from '@nestjs/mongoose';
 import { ListPaginate, QueryPaginate } from '../database/types/database.types';
 
 export function wrapPagination<T>(
@@ -14,7 +15,8 @@ export function wrapPagination<T>(
   };
 }
 
-export const defaultSchemaOptions = {
+export const defaultSchemaOptions: SchemaOptions = {
+  id: true,
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
   toJSON: {
     virtuals: true,

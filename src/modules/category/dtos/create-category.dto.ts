@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnumValue } from 'src/common/decorators/enum-value.decorator';
 import { EStatus } from 'src/constant/enum';
 
 export class CreateCategoryDto {
@@ -8,6 +9,6 @@ export class CreateCategoryDto {
   name: string;
 
   @IsOptional()
-  // @IsEnumValue(EStatus) //TODO
+  @IsEnumValue(EStatus)
   status = EStatus.active;
 }

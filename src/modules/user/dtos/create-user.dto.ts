@@ -6,6 +6,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { IsEnumValue } from 'src/common/decorators/enum-value.decorator';
 import { EStatus } from 'src/constant/enum';
 
 export class CreateUserDto {
@@ -22,6 +23,10 @@ export class CreateUserDto {
   password: string;
 
   @IsOptional()
-  // @IsEnumValue(EStatus) //TODO
+  @IsString()
+  full_name: string;
+
+  @IsOptional()
+  @IsEnumValue(EStatus)
   status = EStatus.active;
 }

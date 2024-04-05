@@ -21,7 +21,6 @@ export class AuthPasswordService {
 
     await this._checkPassword(user, password);
     await this._checkAccountStatus(user);
-
     return user;
   }
 

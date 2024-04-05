@@ -1,3 +1,4 @@
 import appConfig from './app.config';
+import authConfig from './auth.config';
 
-export default [appConfig];
+export default [appConfig, authConfig];

@@ -24,14 +24,13 @@ export class AuthService {
   async authentication(body: AuthBody): Promise<AuthUser> {
     this._validateAuthenticate(body);
 
-    const user = await this.authPasswordService.passwordAuthenticate(
+    const user: User = await this.authPasswordService.passwordAuthenticate(
       body.username,
       body.password,
     );
 
-    const authUser: AuthUser = this._generateAuthUser(user, body);
+    const authUser: AuthUser = this._generateAuthUser(user);
 
-    this._checkAdminAccess(authUser);
     return authUser;
   }
 
@@ -41,7 +40,7 @@ export class AuthService {
     type: EAuthType,
   ): Promise<AuthUser> {
     const token = await this.tokenModel.findOne({
-      user_id: userId,
+      user: userId,
       [type === EAuthType.access ? 'access_token' : 'refresh_token']: authToken,
     });
 
@@ -69,8 +68,7 @@ export class AuthService {
       id: user.id,
       full_name: user.full_name,
       username: user.username,
-      role: EStatus.active, //TODO
-      scope: token.scope,
+      role: user.role,
     };
   }
 
@@ -91,14 +89,14 @@ export class AuthService {
     const token = new Token();
 
     Object.assign(token, {
-      user_id: user.id,
-      scope: user.scope,
+      user: user.id,
       access_token: accessToken,
       access_token_expires_at: accessTokenExpiresAt,
       refresh_token: refreshToken,
       refresh_token_expires_at: refreshTokenExpiresAt,
     });
 
+    await this.tokenModel.deleteMany({ user: user.id });
     await new this.tokenModel(token).save();
 
     return {
@@ -108,7 +106,6 @@ export class AuthService {
       refreshTokenExpiresAt,
       user: {
         id: user.id,
-        scope: user.scope,
         role: user.role,
       },
     };
@@ -120,23 +117,13 @@ export class AuthService {
     });
   }
 
-  private _generateAuthUser(user: User, body: AuthBody): AuthUser {
+  private _generateAuthUser(user: User): AuthUser {
     return {
-      id: user['id'],
+      id: user['_id'].toString(),
       full_name: user.full_name,
       username: user.username,
-      role: EStatus.active, //TODO
-      scope: body.scope,
+      role: user.role,
     };
-  }
-
-  private _checkAdminAccess(authUser: AuthUser): void {
-    const isStandardUserWithAdminScope =
-      authUser.role === EStatus.active && authUser.scope === 'admin';
-
-    if (isStandardUserWithAdminScope) {
-      throw new HttpException('FORBIDDEN', HttpStatus.FORBIDDEN);
-    }
   }
 
   private _generateToken(
@@ -165,7 +152,7 @@ export class AuthService {
   }
 
   private _validateAuthenticate(body: AuthBody) {
-    if (body.scope !== 'admin' || !body.password || !body.username) {
+    if (!body.password || !body.username) {
       throw new HttpException(
         'UNAUTHORIZED_INVALID_AUTH',
         HttpStatus.UNAUTHORIZED,

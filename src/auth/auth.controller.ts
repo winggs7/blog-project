@@ -4,6 +4,8 @@ import { AuthLocalGuard } from './guards/auth.local.guard';
 import { AuthToken, AuthUser } from './types/auth.type';
 import { ExtractJwt } from 'passport-jwt';
 import { EAuthType } from './constants/auth.enum';
+import { ReqAuthUser } from 'src/common/decorators/request.decorator';
+import { Auth, RefreshGuard } from 'src/common/decorators/auth-jwt.decorator';
 
 @Controller()
 export class AuthController {
@@ -11,17 +13,17 @@ export class AuthController {
 
   @UseGuards(AuthLocalGuard)
   @Post('/token')
-  async login(@Req() user: AuthUser): Promise<AuthToken> {
+  async login(@ReqAuthUser() user: AuthUser): Promise<AuthToken> {
     return this.authService.token(user);
   }
 
-  // @RefreshGuard()
+  @RefreshGuard()
   @Post('/refresh')
-  async refresh(@Req() user: AuthUser): Promise<AuthToken> {
+  async refresh(@ReqAuthUser() user: AuthUser): Promise<AuthToken> {
     return this.authService.token(user);
   }
 
-  // @Auth()
+  @Auth()
   @Post('/revoke')
   async revoke(@Req() req: Request): Promise<void> {
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);

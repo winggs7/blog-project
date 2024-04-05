@@ -1,4 +1,4 @@
-import { EStatus } from 'src/constant/enum';
+import { ERole } from 'src/constant/enum';
 
 export type AuthPayLoad = {
   iat: number;
@@ -13,8 +13,7 @@ export type AuthUser = {
   id: string;
   username: string;
   full_name: string;
-  scope: string;
-  role: EStatus;
+  role: ERole;
 };
 
 export type AuthToken = {
@@ -26,7 +25,6 @@ export type AuthToken = {
 };
 
 export type AuthBody = {
-  scope: string;
   username?: string;
   password?: string;
   access_token?: string;

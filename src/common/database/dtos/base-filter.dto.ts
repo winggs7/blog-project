@@ -6,6 +6,7 @@ import {
   IsString,
   Matches,
 } from 'class-validator';
+import { IsEnumValue } from 'src/common/decorators/enum-value.decorator';
 import { EStatus } from 'src/constant/enum';
 
 export class BaseFilterParamDto {
@@ -29,7 +30,7 @@ export class BaseFilterParamDto {
   sorting = 'created_at desc';
 
   @IsOptional()
-  // @IsEnumValue(EStatus) //TODO
+  @IsEnumValue(EStatus)
   @Transform(({ value }) => parseInt(value))
   status: EStatus;
 
@@ -39,6 +40,6 @@ export class BaseFilterParamDto {
 
   @IsOptional()
   @IsISO8601()
-  // @CheckDateRange(30, 'date_from')
+  // @CheckDateRange(30, 'date_from') //TODO
   date_to: Date;
 }

@@ -8,23 +8,36 @@ import { ListPaginate } from 'src/common/database/types/database.types';
 import { wrapPagination } from 'src/common/utils/object.util';
 import { UpdateBlogDto } from './dtos/update-blog.dto';
 import { Category, CategoryDocument } from '../category/schema/category.schema';
+import { AuthUser } from 'src/auth/types/auth.type';
+import { User, UserDocument } from '../user/schema/user.schema';
 
 @Injectable()
 export class BlogService {
   constructor(
     @InjectModel(Blog.name) private blogModel: Model<BlogDocument>,
     @InjectModel(Category.name) private categoryModel: Model<CategoryDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
-  async create(input: CreateBlogDto): Promise<void> {
-    const createdBlog = new this.blogModel(input);
-    await createdBlog.save();
+  async create(input: CreateBlogDto, loggedUser: AuthUser): Promise<void> {
+    const createdBlog = new this.blogModel({
+      ...input,
+      author: loggedUser.id,
+    });
+
+    const newBlog = await createdBlog.save();
+    await this.userModel.findByIdAndUpdate(loggedUser.id, {
+      $push: {
+        blogs: newBlog._id,
+      },
+    });
   }
 
   async getById(id: string): Promise<Blog> {
     const blog = await this.blogModel
       .findOne({ _id: id })
-      .populate('category', '', this.categoryModel);
+      .populate({ path: 'category', select: ['name'] })
+      .populate({ path: 'author', select: ['username', 'full_name'] });
     if (!blog) {
       throw new HttpException('BLOG_NOT_FOUND', HttpStatus.NOT_FOUND);
     }
@@ -40,7 +53,7 @@ export class BlogService {
           { content: new RegExp(params.filter, 'i') },
         ],
       })
-      .populate('category', '', this.categoryModel)
+      .populate({ path: 'category', select: ['name'] })
       .limit(+params.limit)
       .skip(+params.limit * (+params.page - 1)) //TODO parse Int
       .sort({
@@ -51,9 +64,12 @@ export class BlogService {
     return wrapPagination<Blog>(data, data.length, params);
   }
 
-  async update(input: UpdateBlogDto): Promise<void> {
+  async update(input: UpdateBlogDto, loggedUser: AuthUser): Promise<void> {
     await this.getById(input.id);
-    await this.blogModel.findByIdAndUpdate(input.id, input);
+    await this.blogModel.findByIdAndUpdate(input.id, {
+      ...input,
+      author: loggedUser.id,
+    });
   }
 
   async delete(id: string): Promise<void> {
