@@ -11,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { ERole } from 'src/constant/enum';
 import { Token, TokenDocument } from 'src/auth/schema/token.schema';
 import { AuthUser } from 'src/auth/types/auth.type';
+import { UserResponse } from './response/user.response';
 
 @Injectable()
 export class UserService {
@@ -38,7 +39,7 @@ export class UserService {
     await createdUser.save();
   }
 
-  async getById(id: string): Promise<User> {
+  async getById(id: string): Promise<UserResponse> {
     const user = await this.userModel
       .findOne({ _id: id })
       .populate({
@@ -52,17 +53,17 @@ export class UserService {
     return user;
   }
 
-  async getList(params: FilterUserDto): Promise<ListPaginate<User>> {
+  async getList(params: FilterUserDto): Promise<ListPaginate<UserResponse>> {
     const data = await this.userModel
       .find({ name: new RegExp(params.filter, 'i') })
-      .limit(+params.limit)
-      .skip(+params.limit * (+params.page - 1)) //TODO parse Int
+      .limit(params.limit)
+      .skip(params.limit * (params.page - 1))
       .sort({
         created_at: 'asc',
       })
       .exec();
 
-    return wrapPagination<User>(data, data.length, params);
+    return wrapPagination<UserResponse>(data, data.length, params);
   }
 
   async update(input: UpdateUserDto): Promise<void> {

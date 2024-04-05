@@ -8,7 +8,7 @@ export type CategoryDocument = HydratedDocument<Category>;
 
 @Schema(defaultSchemaOptions)
 export class Category extends Base {
-  @Prop()
+  @Prop({ unique: true })
   name: string;
 
   @Prop()
