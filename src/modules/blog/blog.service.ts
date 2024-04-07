@@ -10,6 +10,7 @@ import { UpdateBlogDto } from './dtos/update-blog.dto';
 import { AuthUser } from 'src/auth/types/auth.type';
 import { User, UserDocument } from '../user/schema/user.schema';
 import { BlogResponse } from './response/blog.response';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class BlogService {
@@ -35,17 +36,19 @@ export class BlogService {
   async getById(id: string): Promise<BlogResponse> {
     const blog = await this.blogModel
       .findOne<BlogResponse>({ _id: id })
-      .populate({ path: 'category', select: ['name'] })
-      .populate({ path: 'author', select: ['username', 'full_name'] });
+      .populate({ path: 'category' })
+      .populate({ path: 'author' });
 
     if (!blog) {
       throw new HttpException('BLOG_NOT_FOUND', HttpStatus.NOT_FOUND);
     }
 
-    return blog;
+    return plainToInstance(BlogResponse, blog, {
+      excludeExtraneousValues: true,
+    });
   }
 
-  async getList(params: FilterBlogDto): Promise<ListPaginate<Blog>> {
+  async getList(params: FilterBlogDto): Promise<ListPaginate<BlogResponse>> {
     const data = await this.blogModel
       .find({
         $or: [
@@ -61,7 +64,13 @@ export class BlogService {
       })
       .exec();
 
-    return wrapPagination<Blog>(data, data.length, params);
+    return wrapPagination<BlogResponse>(
+      plainToInstance(BlogResponse, data, {
+        excludeExtraneousValues: true,
+      }),
+      data.length,
+      params,
+    );
   }
 
   async update(input: UpdateBlogDto, loggedUser: AuthUser): Promise<void> {

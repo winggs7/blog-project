@@ -8,6 +8,7 @@ import { FilterCategoryDto } from './dtos/filter-category.dto';
 import { ListPaginate } from 'src/common/database/types/database.types';
 import { wrapPagination } from 'src/common/utils/object.util';
 import { CategoryResponse } from './response/category.response';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class CategoryService {
@@ -31,7 +32,9 @@ export class CategoryService {
       throw new HttpException('CATEGORY_NOT_FOUND', HttpStatus.NOT_FOUND);
     }
 
-    return category;
+    return plainToInstance(CategoryResponse, category, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async getList(
@@ -46,7 +49,13 @@ export class CategoryService {
       })
       .exec();
 
-    return wrapPagination<CategoryResponse>(data, data.length, params);
+    return wrapPagination<CategoryResponse>(
+      plainToInstance(CategoryResponse, data, {
+        excludeExtraneousValues: true,
+      }),
+      data.length,
+      params,
+    );
   }
 
   async update(input: UpdateCategoryDto): Promise<void> {

@@ -1,10 +1,25 @@
+import { Exclude, Expose, Type } from 'class-transformer';
 import { BaseResponse } from 'src/common/types/base.response';
 import { EStatus } from 'src/constant/enum';
-import { Category } from 'src/modules/category/schema/category.schema';
+import { CategoryResponse } from 'src/modules/category/response/category.response';
+import { UserResponse } from 'src/modules/user/response/user.response';
 
-export type BlogResponse = BaseResponse & {
+@Exclude()
+export class BlogResponse extends BaseResponse {
+  @Expose()
   title: string;
+
+  @Expose()
   content: string;
-  category: Category;
+
+  @Expose()
+  @Type(() => CategoryResponse)
+  category: CategoryResponse;
+
+  @Expose()
+  @Type(() => UserResponse)
+  author: UserResponse;
+
+  @Expose()
   status?: EStatus;
-};
+}

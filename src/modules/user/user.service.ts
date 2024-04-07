@@ -12,6 +12,7 @@ import { ERole } from 'src/constant/enum';
 import { Token, TokenDocument } from 'src/auth/schema/token.schema';
 import { AuthUser } from 'src/auth/types/auth.type';
 import { UserResponse } from './response/user.response';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class UserService {
@@ -50,7 +51,9 @@ export class UserService {
       throw new HttpException('USER_NOT_FOUND', HttpStatus.NOT_FOUND);
     }
 
-    return user;
+    return plainToInstance(UserResponse, user, {
+      excludeExtraneousValues: true,
+    });
   }
 
   async getList(params: FilterUserDto): Promise<ListPaginate<UserResponse>> {
@@ -63,7 +66,13 @@ export class UserService {
       })
       .exec();
 
-    return wrapPagination<UserResponse>(data, data.length, params);
+    return wrapPagination<UserResponse>(
+      plainToInstance(UserResponse, data, {
+        excludeExtraneousValues: true,
+      }),
+      data.length,
+      params,
+    );
   }
 
   async update(input: UpdateUserDto): Promise<void> {

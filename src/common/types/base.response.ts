@@ -1,7 +1,14 @@
+import { Exclude, Expose } from 'class-transformer';
 import { Types } from 'mongoose';
 
-export type BaseResponse = {
-  _id: string | number | Types.ObjectId;
+@Exclude()
+export class BaseResponse {
+  @Expose({ name: '_id' })
+  id: string | number | Types.ObjectId;
+
+  @Expose()
   created_at?: Date | string;
+
+  @Expose()
   updated_at?: Date | string;
-};
+}
