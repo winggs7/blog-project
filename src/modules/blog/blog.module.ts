@@ -4,6 +4,8 @@ import { Blog, BlogSchema } from './schema/blog.schema';
 import { BlogService } from './blog.service';
 import { Category, CategorySchema } from '../category/schema/category.schema';
 import { User, UserSchema } from '../user/schema/user.schema';
+import { BullModule } from '@nestjs/bullmq';
+import { ImportProcessor } from './queues/import.processor';
 
 @Module({
   imports: [
@@ -12,9 +14,12 @@ import { User, UserSchema } from '../user/schema/user.schema';
     MongooseModule.forFeature([
       { name: Category.name, schema: CategorySchema },
     ]),
+    BullModule.registerQueue({
+      name: 'import',
+    }),
   ],
   exports: [BlogService],
-  providers: [BlogService],
+  providers: [BlogService, ImportProcessor],
   controllers: [],
 })
 export class BlogModule {}

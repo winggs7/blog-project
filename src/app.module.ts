@@ -5,6 +5,8 @@ import { TerminusModule } from '@nestjs/terminus';
 import { HealthController } from './health/health.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { RouterModule } from './router/router.module';
+import { QueueConfigModule } from './common/queues/queue.module';
+import { CacheConfigModule } from './common/cache/cache.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { RouterModule } from './router/router.module';
     MongooseModule.forRoot(process.env.MONGODB_URL),
     TerminusModule,
     RouterModule.forRoot(),
+    QueueConfigModule,
+    CacheConfigModule,
   ],
   controllers: [HealthController],
   providers: [],

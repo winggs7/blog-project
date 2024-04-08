@@ -9,6 +9,8 @@ import {
   Post,
   Put,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { BlogService } from '../blog.service';
@@ -19,6 +21,9 @@ import { UpdateBlogDto } from '../dtos/update-blog.dto';
 import { AuthUser } from 'src/auth/types/auth.type';
 import { ReqAuthUser } from 'src/common/decorators/request.decorator';
 import { Auth } from 'src/common/decorators/auth-jwt.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Express } from 'express';
+import { multerOptions } from 'src/configs/multer.config';
 
 @Controller('blogs')
 @ApiTags('Blogs')
@@ -65,5 +70,20 @@ export class BlogAdminController {
   @Auth()
   async delete(@Param('id', ValidateMongoId) id: string): Promise<void> {
     return this.service.delete(id);
+  }
+
+  @Post('import')
+  @HttpCode(HttpStatus.CREATED)
+  @Auth()
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: multerOptions.storage,
+    }),
+  )
+  async import(
+    @ReqAuthUser() user: AuthUser,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    await this.service.import(file, user);
   }
 }

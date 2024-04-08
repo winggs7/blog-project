@@ -11,12 +11,19 @@ import { AuthUser } from 'src/auth/types/auth.type';
 import { User, UserDocument } from '../user/schema/user.schema';
 import { BlogResponse } from './response/blog.response';
 import { plainToInstance } from 'class-transformer';
+import Excel from 'exceljs';
+import { Category, CategoryDocument } from '../category/schema/category.schema';
+import fs from 'fs';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class BlogService {
   constructor(
     @InjectModel(Blog.name) private blogModel: Model<BlogDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Category.name) private categoryModel: Model<CategoryDocument>,
+    @InjectQueue('import') private readonly importQueue: Queue,
   ) {}
 
   async create(input: CreateBlogDto, loggedUser: AuthUser): Promise<void> {
@@ -84,5 +91,61 @@ export class BlogService {
   async delete(id: string): Promise<void> {
     await this.getById(id);
     await this.blogModel.findByIdAndDelete(id);
+  }
+
+  async import(file: Express.Multer.File, loggedUser: AuthUser) {
+    await this.importQueue.add(
+      'import-blog',
+      { file, loggedUser },
+      {
+        removeOnComplete: true,
+      },
+    );
+  }
+
+  async verifyImport(jobData: {
+    file: Express.Multer.File;
+    loggedUser: AuthUser;
+  }) {
+    const { file, loggedUser } = jobData;
+
+    const workbook = new Excel.Workbook();
+    await workbook.xlsx.readFile('./uploads/' + file.filename);
+
+    const data: CreateBlogDto[] = [];
+    workbook.worksheets.forEach((sheet) => {
+      const firstRow = sheet.getRow(1);
+      if (!firstRow.cellCount) return;
+      sheet.eachRow((row, rowNumber) => {
+        if (rowNumber == 1) return;
+        const values = row.values;
+        data.push({
+          title: values[1],
+          content: values[2],
+          category: values[3],
+          banner: '',
+          status: 1, //TODO
+        });
+      });
+    });
+
+    const listCategory = await this.categoryModel
+      .find()
+      .where('name')
+      .in(data.map((d) => d.category));
+
+    const verifyData = data.map((data) => {
+      const findCate = listCategory.find((cate) => cate.name === data.category);
+
+      return {
+        ...data,
+        category: findCate['_id'].toString(),
+        author: loggedUser?.id,
+      };
+    });
+
+    await this.blogModel.insertMany(verifyData).then(() => {
+      fs.unlinkSync('./uploads/' + file.filename);
+    });
   }
 }
