@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { Blog, BlogDocument } from './schema/blog.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
@@ -16,6 +16,7 @@ import { Category, CategoryDocument } from '../category/schema/category.schema';
 import fs from 'fs';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class BlogService {
@@ -24,6 +25,7 @@ export class BlogService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Category.name) private categoryModel: Model<CategoryDocument>,
     @InjectQueue('import') private readonly importQueue: Queue,
+    @Inject('IMPORT_SERVICE') private readonly importService: ClientProxy,
   ) {}
 
   async create(input: CreateBlogDto, loggedUser: AuthUser): Promise<void> {
@@ -93,6 +95,7 @@ export class BlogService {
     await this.blogModel.findByIdAndDelete(id);
   }
 
+  // use bullmq
   async import(file: Express.Multer.File, loggedUser: AuthUser) {
     await this.importQueue.add(
       'import-blog',
@@ -112,6 +115,31 @@ export class BlogService {
     const workbook = new Excel.Workbook();
     await workbook.xlsx.readFile('./uploads/' + file.filename);
 
+    const verifyData = this._handleImportData(workbook, loggedUser);
+
+    await this.blogModel.insertMany(verifyData).then(() => {
+      fs.unlinkSync('./uploads/' + file.filename);
+    });
+  }
+
+  // use rabbitmq
+  async importRmb(file: Express.Multer.File, loggedUser: AuthUser) {
+    const workbook = new Excel.Workbook();
+    await workbook.xlsx.readFile('./uploads/' + file.filename);
+
+    const verifyData = await this._handleImportData(workbook, loggedUser);
+
+    this.importService.emit(
+      {
+        cmd: 'import-blog',
+      },
+      {
+        verifyData,
+      },
+    );
+  }
+
+  async _handleImportData(workbook: Excel.Workbook, author: AuthUser) {
     const data: CreateBlogDto[] = [];
     workbook.worksheets.forEach((sheet) => {
       const firstRow = sheet.getRow(1);
@@ -137,15 +165,17 @@ export class BlogService {
     const verifyData = data.map((data) => {
       const findCate = listCategory.find((cate) => cate.name === data.category);
 
+      if (!findCate) {
+        throw new HttpException('CATEGORY_NOT_FOUND', HttpStatus.BAD_REQUEST);
+      }
+
       return {
         ...data,
         category: findCate['_id'].toString(),
-        author: loggedUser?.id,
+        author: author?.id,
       };
     });
 
-    await this.blogModel.insertMany(verifyData).then(() => {
-      fs.unlinkSync('./uploads/' + file.filename);
-    });
+    return verifyData;
   }
 }

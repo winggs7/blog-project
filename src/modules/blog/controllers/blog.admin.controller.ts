@@ -86,4 +86,19 @@ export class BlogAdminController {
   ) {
     await this.service.import(file, user);
   }
+
+  @Post('rmb/import')
+  @HttpCode(HttpStatus.CREATED)
+  @Auth()
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: multerOptions.storage,
+    }),
+  )
+  async importRmb(
+    @ReqAuthUser() user: AuthUser,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    await this.service.importRmb(file, user);
+  }
 }

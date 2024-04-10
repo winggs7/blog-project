@@ -7,6 +7,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { RouterModule } from './router/router.module';
 import { QueueConfigModule } from './common/queues/queue.module';
 import { CacheConfigModule } from './common/cache/cache.module';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 
 @Module({
   imports: [
@@ -22,6 +23,19 @@ import { CacheConfigModule } from './common/cache/cache.module';
     RouterModule.forRoot(),
     QueueConfigModule,
     CacheConfigModule,
+    ClientsModule.register([
+      {
+        name: 'IMPORT_SERVICE',
+        transport: Transport.RMQ,
+        options: {
+          urls: ['amqp://admin:admin@localhost:5672'],
+          queue: 'import-blog-rabbitmq',
+          queueOptions: {
+            durable: false,
+          },
+        },
+      },
+    ]),
   ],
   controllers: [HealthController],
   providers: [],

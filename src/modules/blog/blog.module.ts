@@ -6,6 +6,8 @@ import { Category, CategorySchema } from '../category/schema/category.schema';
 import { User, UserSchema } from '../user/schema/user.schema';
 import { BullModule } from '@nestjs/bullmq';
 import { ImportProcessor } from './queues/import.processor';
+import { ConfigService } from '@nestjs/config';
+import { ClientProxyFactory, Transport } from '@nestjs/microservices';
 
 @Module({
   imports: [
@@ -19,7 +21,39 @@ import { ImportProcessor } from './queues/import.processor';
     }),
   ],
   exports: [BlogService],
-  providers: [BlogService, ImportProcessor],
+  providers: [
+    BlogService,
+    ImportProcessor,
+    {
+      provide: 'IMPORT_SERVICE',
+      useFactory: (configService: ConfigService) => {
+        const rmqUser: string = configService.get<string>(
+          'microservice.rabbitmq.user',
+        );
+        const rmqPass: string = configService.get<string>(
+          'microservice.rabbitmq.password',
+        );
+        const rmqHost: string = configService.get<string>(
+          'microservice.rabbitmq.host',
+        );
+        const rmqQueue: string = configService.get<string>(
+          'microservice.rabbitmq.queue',
+        );
+
+        return ClientProxyFactory.create({
+          transport: Transport.RMQ,
+          options: {
+            urls: [`amqp://${rmqUser}:${rmqPass}@${rmqHost}`],
+            queue: rmqQueue,
+            queueOptions: {
+              durable: true,
+            },
+          },
+        });
+      },
+      inject: [ConfigService],
+    },
+  ],
   controllers: [],
 })
 export class BlogModule {}
